@@ -37,32 +37,29 @@ class UserListResponse(BaseModel):
 
 class UserServiceHandler:
     def __init__(self):
-        self.users_db = {
-            'name' : 'aditya'
-        }
-        # [
-        #     User(
-        #         id=1,
-        #         name="Alice",
-        #         email="alice@example.com",
-        #         age=30,
-        #         login_history=[
-        #             LoginRecord(timestamp=datetime.utcnow() - timedelta(days=1), ip_address="192.168.1.10"),
-        #             LoginRecord(timestamp=datetime.utcnow(), ip_address="192.168.1.11")
-        #         ],
-        #         meta=UserMeta(tags=frozenset(["admin", "beta"]), scores=(88, 92, 85))
-        #     ),
-        #     User(
-        #         id=2,
-        #         name="Bob",
-        #         email="bob@example.com",
-        #         age=25,
-        #         login_history=[
-        #             LoginRecord(timestamp=datetime.utcnow() - timedelta(hours=2), ip_address="192.168.1.20")
-        #         ],
-        #         meta=UserMeta(tags=frozenset(["tester"]), scores=(75, 80, 70))
-        #     )
-        # ]
+        self.users_db = [
+            User(
+                id=1,
+                name="Alice",
+                email="alice@example.com",
+                age=30,
+                login_history=[
+                    LoginRecord(timestamp=datetime.utcnow() - timedelta(days=1), ip_address="192.168.1.10"),
+                    LoginRecord(timestamp=datetime.utcnow(), ip_address="192.168.1.11")
+                ],
+                meta=UserMeta(tags=frozenset(["admin", "beta"]), scores=(88, 92, 85))
+            ),
+            User(
+                id=2,
+                name="Bob",
+                email="bob@example.com",
+                age=25,
+                login_history=[
+                    LoginRecord(timestamp=datetime.utcnow() - timedelta(hours=2), ip_address="192.168.1.20")
+                ],
+                meta=UserMeta(tags=frozenset(["tester"]), scores=(75, 80, 70))
+            )
+        ]
 
     def listUsers(self, request) -> UserListResponse:
         print(f"🔧 [SERVER] Raw request: {request}")
