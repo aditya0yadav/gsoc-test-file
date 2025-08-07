@@ -40,7 +40,7 @@ class UserServiceStub:
     def __init__(self, client: dubbo.Client):
         self.client = client
         self._list_users = client.unary(
-            method_name="unary",  # ✅ match server method name
+            method_name="unary",  
             params_types=[UserRequest],
             return_type=UserListResponse,
             codec="json",
