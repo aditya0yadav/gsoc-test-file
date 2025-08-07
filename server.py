@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 import dubbo
 from dubbo.configs import ServiceConfig
-from dubbo.proxy.handlers import RpcMethodHandler, RpcServiceHandler
+from dubbo.proxy.handlers import RpcServiceHandler, RpcMethodHandler
 
 class LoginRecord(BaseModel):
     timestamp: datetime
@@ -61,44 +61,45 @@ class UserServiceHandler:
             )
         ]
 
-    def listUsers(self, request) -> UserListResponse:
-        print(f"🔧 [SERVER] Raw request: {request}")
-        print(f"🔧 [SERVER] Request type: {type(request)}")
-
-        if isinstance(request, list):
-            if len(request) > 0:
-                request_data = request[0]
-                if isinstance(request_data, dict):
-                    if '__model_data__' in request_data:
-                        actual_data = request_data['__model_data__']
-                        request = UserRequest(**actual_data)
-                    else:
-                        request = UserRequest(**request_data)
-                else:
-                    request = request_data
+    def listUsers(self, request_data):
+        if isinstance(request_data, dict):
+            if '__model_data__' in request_data:
+                actual_data = request_data['__model_data__']
+                request = UserRequest(**actual_data)
             else:
-                request = UserRequest(name="Unknown", age=0)
-        elif isinstance(request, dict):
-            if '__model_data__' in request:
-                request = UserRequest(**request['__model_data__'])
-            else:
-                request = UserRequest(**request)
-        elif not isinstance(request, UserRequest):
+                request = UserRequest(**request_data)
+        elif isinstance(request_data, UserRequest):
+            request = request_data
+        else:
             try:
-                request = UserRequest(**request)
+                request = UserRequest(**request_data)
             except:
                 request = UserRequest(name="Unknown", age=0)
 
         print(f"✅ [SERVER] Parsed UserRequest: {request}")
 
+        dynamic_user = User(
+            id=len(self.users_db) + 1,
+            name=request.name,
+            email=f"{request.name.lower()}@example.com",
+            age=request.age,
+            login_history=[
+                LoginRecord(timestamp=datetime.utcnow(), ip_address="127.0.0.1")
+            ],
+            meta=UserMeta(tags=frozenset(["dynamic", "new"]), scores=(90, 85, 95))
+        )
+
+        all_users = self.users_db + [dynamic_user]
+
         greeting = f"Hello {request.name} (age {request.age})!"
 
         response = UserListResponse(
-            users=self.users_db,
-            total_count=len(self.users_db),
+            users=all_users,
+            total_count=len(all_users),
             greeting=greeting,
             generated_at=datetime.utcnow()
         )
+
         print(f"📦 [SERVER] Sending enriched response:\n{response.model_dump_json(indent=2, exclude_none=True)}")
         return response
 
@@ -108,7 +109,6 @@ def build_service_handler_manual(codec_type: str = 'json'):
         method=service_impl.listUsers,
         method_name="unary",
         params_types=[UserRequest],
-        return_type=UserListResponse,
         codec=codec_type
     )
     service_handler = RpcServiceHandler(
@@ -119,7 +119,7 @@ def build_service_handler_manual(codec_type: str = 'json'):
 
 def build_service_handler_automatic_fixed(codec_type: str = 'json'):
     service_impl = UserServiceHandler()
-    method_handler = RpcMethodHandler.unary(
+    method_handler = dubbo.Server.unary(
         method=service_impl.listUsers,
         codec=codec_type
     )
@@ -131,7 +131,7 @@ def build_service_handler_automatic_fixed(codec_type: str = 'json'):
 
 def build_service_handler_multiple_methods(codec_type: str = 'json'):
     service_impl = UserServiceHandler()
-    list_users_handler = RpcMethodHandler.unary(
+    list_users_handler = dubbo.Server.unary(
         method=service_impl.listUsers,
         method_name="listUsers",
         params_types=[UserRequest],
@@ -170,7 +170,6 @@ def run_server(mode: str = "manual", codec_type: str = 'json', host: str = "127.
     print(f"📦 Codec: {codec_type}")
     print(f"📚 Available methods: {list(service_handler.method_handlers.keys())}")
     print("\nPress Enter to stop the server...")
-
     input()
     print("🛑 Server stopped")
 
